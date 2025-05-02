@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -18,17 +18,19 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
+#include "../../src/nucleus/read_conf.h"
 #include "../SDL_internal.h"
-
+#include <stdio.h>
+#include <string.h>
 /* This is the joystick API for Simple DirectMedia Layer */
 
+#include "../SDL_hints_c.h"
 #include "SDL.h"
 #include "SDL_atomic.h"
 #include "SDL_events.h"
-#include "SDL_sysjoystick.h"
 #include "SDL_hints.h"
-#include "../SDL_hints_c.h"
 #include "SDL_steam_virtual_gamepad.h"
+#include "SDL_sysjoystick.h"
 
 #ifndef SDL_EVENTS_DISABLED
 #include "../events/SDL_events_c.h"
@@ -114,7 +116,7 @@ static SDL_JoystickDriver *SDL_joystick_drivers[] = {
 #ifndef SDL_THREAD_SAFETY_ANALYSIS
 static
 #endif
-SDL_mutex *SDL_joystick_lock = NULL; /* This needs to support recursive locks */
+    SDL_mutex *SDL_joystick_lock = NULL; /* This needs to support recursive locks */
 static SDL_atomic_t SDL_joystick_lock_pending;
 static int SDL_joysticks_locked;
 static SDL_bool SDL_joysticks_initialized;
@@ -123,7 +125,7 @@ static SDL_Joystick *SDL_joysticks SDL_GUARDED_BY(SDL_joystick_lock) = NULL;
 static SDL_atomic_t SDL_next_joystick_instance_id SDL_GUARDED_BY(SDL_joystick_lock);
 static int SDL_joystick_player_count SDL_GUARDED_BY(SDL_joystick_lock) = 0;
 static SDL_JoystickID *SDL_joystick_players SDL_GUARDED_BY(SDL_joystick_lock) = NULL;
-static SDL_bool SDL_joystick_allows_background_events = SDL_FALSE;
+static SDL_bool SDL_joystick_allows_background_events = SDL_TRUE;
 char SDL_joystick_magic;
 
 static Uint32 initial_arcadestick_devices[] = {
@@ -421,11 +423,11 @@ static SDL_vidpid_list zero_centered_devices = {
     SDL_FALSE
 };
 
-#define CHECK_JOYSTICK_MAGIC(joystick, retval)             \
+#define CHECK_JOYSTICK_MAGIC(joystick, retval)                 \
     if (!joystick || joystick->magic != &SDL_joystick_magic) { \
-        SDL_InvalidParamError("joystick");                 \
-        SDL_UnlockJoysticks();                             \
-        return retval;                                     \
+        SDL_InvalidParamError("joystick");                     \
+        SDL_UnlockJoysticks();                                 \
+        return retval;                                         \
     }
 
 SDL_bool SDL_JoysticksInitialized(void)
@@ -599,11 +601,11 @@ static SDL_bool SDL_SetJoystickIDForPlayerIndex(int player_index, SDL_JoystickID
 
 static void SDLCALL SDL_JoystickAllowBackgroundEventsChanged(void *userdata, const char *name, const char *oldValue, const char *hint)
 {
-    if (SDL_GetStringBoolean(hint, SDL_FALSE)) {
-        SDL_joystick_allows_background_events = SDL_TRUE;
-    } else {
-        SDL_joystick_allows_background_events = SDL_FALSE;
-    }
+    // if (SDL_GetStringBoolean(hint, SDL_FALSE)) {
+    SDL_joystick_allows_background_events = SDL_TRUE;
+    /* } else {
+         SDL_joystick_allows_background_events = SDL_FALSE;
+     }*/
 }
 
 int SDL_JoystickInit(void)
@@ -771,6 +773,9 @@ static SDL_bool SDL_JoystickAxesCenteredAtZero(SDL_Joystick *joystick)
 #endif /* __WINRT__ */
 }
 
+// char *iniValue;
+int *iniValues = NULL;
+int numIDs = 0;
 /*
  * Open a joystick for use - the index passed as an argument refers to
  * the N'th joystick on the system.  This index is the value which will
@@ -780,6 +785,16 @@ static SDL_bool SDL_JoystickAxesCenteredAtZero(SDL_Joystick *joystick)
  */
 SDL_Joystick *SDL_JoystickOpen(int device_index)
 {
+    // if (iniValue == NULL) {
+    //     iniValue = readIniFileFromDll();
+    //     stringToLower(iniValue);
+    // }
+
+    if (iniValues == NULL) {
+        iniValues = parseGamepadIDs(&numIDs);
+    }
+    // logMessage("added %d\n", device_index);
+
     SDL_JoystickDriver *driver;
     SDL_JoystickID instance_id;
     SDL_Joystick *joystick;
@@ -788,6 +803,31 @@ SDL_Joystick *SDL_JoystickOpen(int device_index)
     const char *joystickpath = NULL;
     SDL_JoystickPowerLevel initial_power_level;
     const SDL_SteamVirtualGamepadInfo *info;
+
+    SDL_SetHint("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", "1");
+    // if (device_index != atoi(iniValue)) {
+    // device_index = atoi(iniValue);
+    // }
+    SDL_bool isAllowed = SDL_FALSE;
+    if (iniValues) {
+        for (int i = 0; i < numIDs; i++) {
+            if (device_index == iniValues[i]) {
+                isAllowed = SDL_TRUE;
+                break;
+            }
+        }
+    }
+    if (!isAllowed) {
+        if (iniValues)
+            device_index = iniValues[0];
+        else
+            device_index = 0;
+    }
+
+    if (device_index >= SDL_NumJoysticks()) {
+        return NULL;
+    }
+    // logMessage("found %d ", device_index);
 
     SDL_LockJoysticks();
 
@@ -801,6 +841,74 @@ SDL_Joystick *SDL_JoystickOpen(int device_index)
      * it is important that we have a single joystick * for each instance id
      */
     instance_id = driver->GetDeviceInstanceID(device_index);
+
+    // Current working code
+    // Apply to SDL_GameControllerOpen too since SDL_GameControllerOpen call SDL_JoystickOpen to get the proper joystick
+    // for (int i = 0; i < SDL_NumJoysticks(); ++i) {
+    //
+    //    char result[1024];
+
+    //    sprintf(result, "%s%s", "ini => ", iniValue);
+    //    logMessage(result);
+
+    //    char *pathToLower = driver->GetDevicePath(i);
+
+    //    if (pathToLower == NULL) {
+    //       /* pathToLower = SDL_JoystickPathForIndex(i);
+    //        if (pathToLower == NULL) {*/
+    //            continue;
+    //        //}
+    //    }
+
+    //    stringToLower(pathToLower);
+
+    //    BOOL isMatch = strcmp(pathToLower, iniValue) == 0;
+
+    //    if (!isMatch) {
+
+    //        sprintf(result, "%s%s", "Skipped path => ", pathToLower);
+    //        logMessage(result);
+    //        continue;
+    //    }
+
+    //    instance_id = driver->GetDeviceInstanceID(i);
+    //    device_index = i;
+
+    //    sprintf(result, "%s%s", "Will Assign with path => ", pathToLower);
+    //    logMessage(result);
+    //    found = TRUE;
+    //    break;
+    //}
+
+    // if (!found) {
+
+    //    char result[1024];
+
+    //    char *pathToLower = driver->GetDevicePath(device_index);
+
+    //    //if (pathToLower == NULL) {
+
+    //    //    //pathToLower = SDL_JoystickPathForIndex(device_index);
+
+    //    //    if (pathToLower == NULL) {
+    //    //        SDL_UnlockJoysticks();
+    //    //        return NULL;
+    //    //    }
+    //    //}
+
+    //    stringToLower(pathToLower);
+
+    //    BOOL isMatch = strcmp(pathToLower, iniValue) == 0;
+
+    //    if (!isMatch) {
+
+    //        sprintf(result, "%s%s", "Skipped path => ", pathToLower);
+    //        logMessage(result);
+    //        SDL_UnlockJoysticks();
+    //        return NULL;
+    //    }
+    //}
+
     while (joysticklist) {
         if (instance_id == joysticklist->instance_id) {
             joystick = joysticklist;
@@ -1688,15 +1796,16 @@ void SDL_JoystickQuit(void)
 
 static SDL_bool SDL_PrivateJoystickShouldIgnoreEvent(void)
 {
-    if (SDL_joystick_allows_background_events) {
-        return SDL_FALSE;
-    }
+    // if (SDL_joystick_allows_background_events) {
+    //     return SDL_FALSE;
+    // }
 
-    if (SDL_HasWindows() && SDL_GetKeyboardFocus() == NULL) {
-        /* We have windows but we don't have focus, ignore the event. */
-        return SDL_TRUE;
-    }
+    // if (SDL_HasWindows() && SDL_GetKeyboardFocus() == NULL) {
+    //     /* We have windows but we don't have focus, ignore the event. */
+    //     return SDL_TRUE;
+    // }
     return SDL_FALSE;
+    // SDL_FALSE;
 }
 
 /* These are global for SDL_sysjoystick.c and SDL_events.c */
@@ -2758,11 +2867,11 @@ SDL_bool SDL_IsJoystickXboxSeriesX(Uint16 vendor_id, Uint16 product_id)
             return SDL_TRUE;
         }
     }
-    if (vendor_id == USB_VENDOR_ASUS) {
-        if (product_id == USB_PRODUCT_ROG_RAIKIRI) {
-            return SDL_TRUE;
-        }
-    }
+    // if (vendor_id == USB_VENDOR_ASUS) {
+    //     if (product_id == USB_PRODUCT_ROG_RAIKIRI) {
+    //         return SDL_TRUE;
+    //     }
+    // }
     return SDL_FALSE;
 }
 

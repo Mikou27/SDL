@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -22,16 +22,17 @@
 
 /* This is the game controller API for Simple DirectMedia Layer */
 
+#include "../../src/nucleus/read_conf.h"
 #include "SDL_events.h"
+#include "SDL_gamecontrollerdb.h"
 #include "SDL_hints.h"
-#include "SDL_timer.h"
-#include "SDL_sysjoystick.h"
 #include "SDL_joystick_c.h"
 #include "SDL_steam_virtual_gamepad.h"
-#include "SDL_gamecontrollerdb.h"
+#include "SDL_sysjoystick.h"
+#include "SDL_timer.h"
 #include "controller_type.h"
-#include "usb_ids.h"
 #include "hidapi/SDL_hidapi_nintendo.h"
+#include "usb_ids.h"
 
 #ifndef SDL_EVENTS_DISABLED
 #include "../events/SDL_events_c.h"
@@ -688,7 +689,7 @@ static ControllerMapping_t *SDL_CreateMappingForWGIController(SDL_JoystickGUID g
 /*
  * Helper function to scan the mappings database for a controller with the specified GUID
  */
-static ControllerMapping_t *SDL_PrivateMatchControllerMappingForGUID(SDL_JoystickGUID guid, SDL_bool match_version, SDL_bool exact_match_crc)
+static ControllerMapping_t *SDL_PrivateMatchControllerMappingForGUID(SDL_JoystickGUID guid, SDL_bool match_version)
 {
     ControllerMapping_t *mapping, *best_match = NULL;
     Uint16 crc = 0;
@@ -728,8 +729,6 @@ static ControllerMapping_t *SDL_PrivateMatchControllerMappingForGUID(SDL_Joystic
 
                 /* An exact match, including CRC */
                 return mapping;
-            } else if (crc && exact_match_crc) {
-                return NULL;
             }
 
             if (!best_match) {
@@ -747,7 +746,7 @@ static ControllerMapping_t *SDL_PrivateGetControllerMappingForGUID(SDL_JoystickG
 {
     ControllerMapping_t *mapping;
 
-    mapping = SDL_PrivateMatchControllerMappingForGUID(guid, SDL_TRUE, adding_mapping);
+    mapping = SDL_PrivateMatchControllerMappingForGUID(guid, SDL_TRUE);
     if (mapping) {
         return mapping;
     }
@@ -761,7 +760,7 @@ static ControllerMapping_t *SDL_PrivateGetControllerMappingForGUID(SDL_JoystickG
 
     if (SDL_JoystickGUIDUsesVersion(guid)) {
         /* Try again, ignoring the version */
-        mapping = SDL_PrivateMatchControllerMappingForGUID(guid, SDL_FALSE, SDL_FALSE);
+        mapping = SDL_PrivateMatchControllerMappingForGUID(guid, SDL_FALSE);
         if (mapping) {
             return mapping;
         }
@@ -1399,10 +1398,10 @@ static void SDL_PrivateAppendToMappingString(char *mapping_string,
         break;
     case EMappingKind_Axis:
         (void)SDL_snprintf(buffer, sizeof(buffer), "%sa%i%s",
-            mapping->half_axis_positive ? "+" :
-            mapping->half_axis_negative ? "-" : "",
-            mapping->target,
-            mapping->axis_reversed ? "~" : "");
+                           mapping->half_axis_positive ? "+" : mapping->half_axis_negative ? "-"
+                                                                                           : "",
+                           mapping->target,
+                           mapping->axis_reversed ? "~" : "");
         break;
     case EMappingKind_Hat:
         (void)SDL_snprintf(buffer, sizeof(buffer), "h%i.%i", mapping->target >> 4, mapping->target & 0x0F);
@@ -2060,19 +2059,77 @@ SDL_bool SDL_IsGameControllerNameAndGUID(const char *name, SDL_JoystickGUID guid
 /*
  * Return 1 if the joystick at this device index is a supported controller
  */
+
 SDL_bool SDL_IsGameController(int joystick_index)
 {
+
+    // iniValue = readIniFileFromDll();
+    // joystick_index = atoi(iniValue);
+
+    // logMessage("Read ini at IsGameController");
+    //  BOOL hammerFix = TRUE;//True work with heroes of hammerwatch 2// false work with half life
+
     SDL_bool retval;
 
+    // char *iniValue = readIniFileFromDll();
+
+    // if (strlen(iniValue) > 1)
+    //{
     SDL_LockJoysticks();
     {
+        // logMessage("Using device path");
+
         if (SDL_PrivateGetControllerMapping(joystick_index) != NULL) {
+            // logMessage("True");
+            // logMessage("IsGameController = true %d",joystick_index);
             retval = SDL_TRUE;
         } else {
+            // logMessage("False");
+            // logMessage("IsGameController = false %d", joystick_index);
             retval = SDL_FALSE;
         }
     }
+
     SDL_UnlockJoysticks();
+    //}
+    // else
+    //{
+    //    SDL_LockJoysticks();
+    //    {char *iniValue = readIniFileFromDll();
+    //        int index = atoi(iniValue);
+    //        logMessage("Using device index");
+    //
+    //        retval = (index == joystick_index) ? SDL_TRUE : SDL_FALSE;
+
+    //        if (retval == SDL_TRUE)
+    //        {
+    //            char str[20]; // Allocate a buffer large enough
+    //            snprintf(str, sizeof(str), "%d", joystick_index);
+    //            logMessage(str);
+    //        }
+    //    }
+
+    //    SDL_UnlockJoysticks();
+    //}
+    // char *iniValue = readIniFileFromDll();
+
+    // if (strlen(iniValue) == 1) {
+
+    //    int index = atoi(iniValue);
+
+    //    if (index != joystick_index) {
+    //        logMessage("Skip");
+    //        char str[20]; // Allocate a buffer large enough
+    //        snprintf(str, sizeof(str), "%d", joystick_index);
+    //        logMessage(str);
+    //        return SDL_FALSE;
+    //
+    //    }
+    //    else
+    //    {
+    //        return SDL_TRUE;
+    //    }
+    //}
 
     return retval;
 }
@@ -2126,18 +2183,6 @@ SDL_bool SDL_ShouldIgnoreGameController(const char *name, SDL_JoystickGUID guid)
 
     SDL_GetJoystickGUIDInfo(guid, &vendor, &product, &version, NULL);
 
-#ifdef __WIN32__
-    if (SDL_GetHintBoolean("SDL_GAMECONTROLLER_ALLOW_STEAM_VIRTUAL_GAMEPAD", SDL_FALSE) &&
-        SDL_GetHintBoolean("STEAM_COMPAT_PROTON", SDL_FALSE)) {
-        /* We are launched by Steam and running under Proton
-         * We can't tell whether this controller is a Steam Virtual Gamepad,
-         * so assume that Proton is doing the appropriate filtering of controllers
-         * and anything we see here is fine to use.
-         */
-        return SDL_FALSE;
-    }
-#endif // __WIN32__
-
     if (SDL_IsJoystickSteamVirtualGamepad(vendor, product, version)) {
         return !SDL_GetHintBoolean("SDL_GAMECONTROLLER_ALLOW_STEAM_VIRTUAL_GAMEPAD", SDL_FALSE);
     }
@@ -2155,6 +2200,7 @@ SDL_bool SDL_ShouldIgnoreGameController(const char *name, SDL_JoystickGUID guid)
     }
 }
 
+char *iniValue;
 /*
  * Open a controller for use - the index passed as an argument refers to
  * the N'th controller on the system.  This index is the value which will
@@ -2162,8 +2208,29 @@ SDL_bool SDL_ShouldIgnoreGameController(const char *name, SDL_JoystickGUID guid)
  *
  * This function returns a controller identifier, or NULL if an error occurred.
  */
-SDL_GameController *SDL_GameControllerOpen(int joystick_index)
+SDL_GameController *SDL_GameControllerOpen(int joystick_index) // joystick_index is assigned in SDL_joystick class joystick is a gamecontroller sub component
 {
+    // if (iniValue == NULL)
+    //{
+    //     iniValue = readIniFileFromDll();
+    // }
+
+    // if (strlen(iniValue) == 1) {
+
+    //    int index = atoi(iniValue);
+    //    //commented working
+    //    //if (index != joystick_index) {
+    //    //Check if the SDL_joystick at "joystick_index" has the expected path(from config.ini);
+    //    //Don't creates the GameController if SDL_JoystickOpen returns NULL.
+    //    if (SDL_JoystickOpen(index) == NULL){
+    //        logMessage("(From SDL_GameControllerOpen) Skip joystick with path =>");
+    //        char str[20]; // Allocate a buffer large enough
+    //        snprintf(str, sizeof(str), "%d", joystick_index);
+    //        logMessage(str);
+    //        return NULL;
+    //    }
+    //}
+
     SDL_JoystickID instance_id;
     SDL_GameController *gamecontroller;
     SDL_GameController *gamecontrollerlist;
@@ -2218,6 +2285,7 @@ SDL_GameController *SDL_GameControllerOpen(int joystick_index)
             return NULL;
         }
     }
+
     if (gamecontroller->joystick->nhats) {
         gamecontroller->last_hat_mask = (Uint8 *)SDL_calloc(gamecontroller->joystick->nhats, sizeof(*gamecontroller->last_hat_mask));
         if (!gamecontroller->last_hat_mask) {
@@ -2765,7 +2833,7 @@ Uint16 SDL_GameControllerGetFirmwareVersion(SDL_GameController *gamecontroller)
     return SDL_JoystickGetFirmwareVersion(joystick);
 }
 
-const char * SDL_GameControllerGetSerial(SDL_GameController *gamecontroller)
+const char *SDL_GameControllerGetSerial(SDL_GameController *gamecontroller)
 {
     SDL_Joystick *joystick = SDL_GameControllerGetJoystick(gamecontroller);
 
