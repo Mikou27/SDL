@@ -601,11 +601,7 @@ static SDL_bool SDL_SetJoystickIDForPlayerIndex(int player_index, SDL_JoystickID
 
 static void SDLCALL SDL_JoystickAllowBackgroundEventsChanged(void *userdata, const char *name, const char *oldValue, const char *hint)
 {
-    // if (SDL_GetStringBoolean(hint, SDL_FALSE)) {
     SDL_joystick_allows_background_events = SDL_TRUE;
-    /* } else {
-         SDL_joystick_allows_background_events = SDL_FALSE;
-     }*/
 }
 
 int SDL_JoystickInit(void)
@@ -785,15 +781,9 @@ int numIDs = 0;
  */
 SDL_Joystick *SDL_JoystickOpen(int device_index)
 {
-    // if (iniValue == NULL) {
-    //     iniValue = readIniFileFromDll();
-    //     stringToLower(iniValue);
-    // }
-
     if (iniValues == NULL) {
         iniValues = parseGamepadIDs(&numIDs);
     }
-    // logMessage("added %d\n", device_index);
 
     SDL_JoystickDriver *driver;
     SDL_JoystickID instance_id;
@@ -805,9 +795,7 @@ SDL_Joystick *SDL_JoystickOpen(int device_index)
     const SDL_SteamVirtualGamepadInfo *info;
 
     SDL_SetHint("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", "1");
-    // if (device_index != atoi(iniValue)) {
-    // device_index = atoi(iniValue);
-    // }
+
     SDL_bool isAllowed = SDL_FALSE;
     if (iniValues) {
         for (int i = 0; i < numIDs; i++) {
@@ -827,7 +815,6 @@ SDL_Joystick *SDL_JoystickOpen(int device_index)
     if (device_index >= SDL_NumJoysticks()) {
         return NULL;
     }
-    // logMessage("found %d ", device_index);
 
     SDL_LockJoysticks();
 
@@ -841,73 +828,6 @@ SDL_Joystick *SDL_JoystickOpen(int device_index)
      * it is important that we have a single joystick * for each instance id
      */
     instance_id = driver->GetDeviceInstanceID(device_index);
-
-    // Current working code
-    // Apply to SDL_GameControllerOpen too since SDL_GameControllerOpen call SDL_JoystickOpen to get the proper joystick
-    // for (int i = 0; i < SDL_NumJoysticks(); ++i) {
-    //
-    //    char result[1024];
-
-    //    sprintf(result, "%s%s", "ini => ", iniValue);
-    //    logMessage(result);
-
-    //    char *pathToLower = driver->GetDevicePath(i);
-
-    //    if (pathToLower == NULL) {
-    //       /* pathToLower = SDL_JoystickPathForIndex(i);
-    //        if (pathToLower == NULL) {*/
-    //            continue;
-    //        //}
-    //    }
-
-    //    stringToLower(pathToLower);
-
-    //    BOOL isMatch = strcmp(pathToLower, iniValue) == 0;
-
-    //    if (!isMatch) {
-
-    //        sprintf(result, "%s%s", "Skipped path => ", pathToLower);
-    //        logMessage(result);
-    //        continue;
-    //    }
-
-    //    instance_id = driver->GetDeviceInstanceID(i);
-    //    device_index = i;
-
-    //    sprintf(result, "%s%s", "Will Assign with path => ", pathToLower);
-    //    logMessage(result);
-    //    found = TRUE;
-    //    break;
-    //}
-
-    // if (!found) {
-
-    //    char result[1024];
-
-    //    char *pathToLower = driver->GetDevicePath(device_index);
-
-    //    //if (pathToLower == NULL) {
-
-    //    //    //pathToLower = SDL_JoystickPathForIndex(device_index);
-
-    //    //    if (pathToLower == NULL) {
-    //    //        SDL_UnlockJoysticks();
-    //    //        return NULL;
-    //    //    }
-    //    //}
-
-    //    stringToLower(pathToLower);
-
-    //    BOOL isMatch = strcmp(pathToLower, iniValue) == 0;
-
-    //    if (!isMatch) {
-
-    //        sprintf(result, "%s%s", "Skipped path => ", pathToLower);
-    //        logMessage(result);
-    //        SDL_UnlockJoysticks();
-    //        return NULL;
-    //    }
-    //}
 
     while (joysticklist) {
         if (instance_id == joysticklist->instance_id) {
@@ -1796,16 +1716,7 @@ void SDL_JoystickQuit(void)
 
 static SDL_bool SDL_PrivateJoystickShouldIgnoreEvent(void)
 {
-    // if (SDL_joystick_allows_background_events) {
-    //     return SDL_FALSE;
-    // }
-
-    // if (SDL_HasWindows() && SDL_GetKeyboardFocus() == NULL) {
-    //     /* We have windows but we don't have focus, ignore the event. */
-    //     return SDL_TRUE;
-    // }
     return SDL_FALSE;
-    // SDL_FALSE;
 }
 
 /* These are global for SDL_sysjoystick.c and SDL_events.c */

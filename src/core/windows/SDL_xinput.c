@@ -101,22 +101,6 @@ int WIN_LoadXInputDLL(void)
         return -1;
     }
 
-    // s_pXInputDLL = LoadLibrary(TEXT("openxinput1_3.dll")); /* 1.4 Ships with Windows 8. */
-    // if (!s_pXInputDLL) {
-    //     version = (1 << 16) | 3;
-    //     s_pXInputDLL = LoadLibrary(TEXT("XInput1_3.dll")); /* 1.3 can be installed as a redistributable component. */
-    // }
-    // if (!s_pXInputDLL) {
-    //     s_pXInputDLL = LoadLibrary(TEXT("bin\\XInput1_3.dll"));
-    // }
-    // if (!s_pXInputDLL) {
-    //     /* "9.1.0" Ships with Vista and Win7, and is more limited than 1.3+ (e.g. XInputGetStateEx is not available.)  */
-    //     s_pXInputDLL = LoadLibrary(TEXT("XInput9_1_0.dll"));
-    // }
-    // if (!s_pXInputDLL) {
-    //     return -1;
-    // }
-
     SDL_assert(s_XInputDLLRefCount == 0);
     SDL_XInputVersion = version;
     s_XInputDLLRefCount = 1;

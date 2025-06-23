@@ -2062,75 +2062,19 @@ SDL_bool SDL_IsGameControllerNameAndGUID(const char *name, SDL_JoystickGUID guid
 
 SDL_bool SDL_IsGameController(int joystick_index)
 {
-
-    // iniValue = readIniFileFromDll();
-    // joystick_index = atoi(iniValue);
-
-    // logMessage("Read ini at IsGameController");
-    //  BOOL hammerFix = TRUE;//True work with heroes of hammerwatch 2// false work with half life
-
     SDL_bool retval;
 
-    // char *iniValue = readIniFileFromDll();
-
-    // if (strlen(iniValue) > 1)
-    //{
     SDL_LockJoysticks();
     {
-        // logMessage("Using device path");
-
         if (SDL_PrivateGetControllerMapping(joystick_index) != NULL) {
-            // logMessage("True");
-            // logMessage("IsGameController = true %d",joystick_index);
             retval = SDL_TRUE;
         } else {
-            // logMessage("False");
-            // logMessage("IsGameController = false %d", joystick_index);
             retval = SDL_FALSE;
         }
     }
 
     SDL_UnlockJoysticks();
-    //}
-    // else
-    //{
-    //    SDL_LockJoysticks();
-    //    {char *iniValue = readIniFileFromDll();
-    //        int index = atoi(iniValue);
-    //        logMessage("Using device index");
-    //
-    //        retval = (index == joystick_index) ? SDL_TRUE : SDL_FALSE;
-
-    //        if (retval == SDL_TRUE)
-    //        {
-    //            char str[20]; // Allocate a buffer large enough
-    //            snprintf(str, sizeof(str), "%d", joystick_index);
-    //            logMessage(str);
-    //        }
-    //    }
-
-    //    SDL_UnlockJoysticks();
-    //}
-    // char *iniValue = readIniFileFromDll();
-
-    // if (strlen(iniValue) == 1) {
-
-    //    int index = atoi(iniValue);
-
-    //    if (index != joystick_index) {
-    //        logMessage("Skip");
-    //        char str[20]; // Allocate a buffer large enough
-    //        snprintf(str, sizeof(str), "%d", joystick_index);
-    //        logMessage(str);
-    //        return SDL_FALSE;
-    //
-    //    }
-    //    else
-    //    {
-    //        return SDL_TRUE;
-    //    }
-    //}
-
+   
     return retval;
 }
 
@@ -2209,28 +2153,7 @@ char *iniValue;
  * This function returns a controller identifier, or NULL if an error occurred.
  */
 SDL_GameController *SDL_GameControllerOpen(int joystick_index) // joystick_index is assigned in SDL_joystick class joystick is a gamecontroller sub component
-{
-    // if (iniValue == NULL)
-    //{
-    //     iniValue = readIniFileFromDll();
-    // }
-
-    // if (strlen(iniValue) == 1) {
-
-    //    int index = atoi(iniValue);
-    //    //commented working
-    //    //if (index != joystick_index) {
-    //    //Check if the SDL_joystick at "joystick_index" has the expected path(from config.ini);
-    //    //Don't creates the GameController if SDL_JoystickOpen returns NULL.
-    //    if (SDL_JoystickOpen(index) == NULL){
-    //        logMessage("(From SDL_GameControllerOpen) Skip joystick with path =>");
-    //        char str[20]; // Allocate a buffer large enough
-    //        snprintf(str, sizeof(str), "%d", joystick_index);
-    //        logMessage(str);
-    //        return NULL;
-    //    }
-    //}
-
+{  
     SDL_JoystickID instance_id;
     SDL_GameController *gamecontroller;
     SDL_GameController *gamecontrollerlist;
