@@ -56,9 +56,10 @@ char* concat(const char* s1, const char* s2)
 static BOOL Inited = FALSE;
 
 int* parseGamepadIDs(int* numIDs) {
-    FILE* file = fopen("SDL2.ini", "r");
+    FILE *file = fopen(GetIniPath(), "r");
     if (!file) {
         perror("Failed to open configuration file");
+        logMessage("file not found ", "");
         *numIDs = 0;
         return NULL;
     }
@@ -80,13 +81,14 @@ int* parseGamepadIDs(int* numIDs) {
                 fclose(file);
                 perror("Memory allocation failed");
                 *numIDs = 0;
+                logMessage("return 0 ", "");
                 return NULL;
             }
 
             ids = temp;
             ids[*numIDs] = strtol(token, NULL, 10); // Convert token to integer
             (*numIDs)++;
-
+            logMessage("return  ", numIDs);
             token = strtok_s(NULL, " ", &context); // Continue tokenizing
         }
     }
@@ -97,7 +99,7 @@ int* parseGamepadIDs(int* numIDs) {
 
 
 // Read the INI file from the DLL directory and compute the sum of integers in it
-char* readIniFileFromDll()
+char* GetIniPath()
 {
     if (!Inited) {
         initializeLogFilePath();
@@ -132,26 +134,26 @@ char* readIniFileFromDll()
     logMessage("Reading .ini file from: %s", iniFilePath);
 
     // Open the .ini file
-    FILE* file = fopen(iniFilePath, "r");
-    if (file == NULL) {
-        logMessage("Error: Could not open file %s", iniFilePath);
-        return "Error: Could not open file";
-    }
+    //FILE* file = fopen(iniFilePath, "r");
+    //if (file == NULL) {
+    //    logMessage("Error: Could not open file %s", iniFilePath);
+    //    return "Error: Could not open file";
+    //}
 
-    if (fgets(buffer, sizeof(buffer), file) == NULL) {
-        logMessage("Error: Failed to read from file %s", iniFilePath);
-        fclose(file);
-        return "Error: Failed to read from file";
-    }
+    //if (fgets(buffer, sizeof(buffer), file) == NULL) {
+    //    logMessage("Error: Failed to read from file %s", iniFilePath);
+    //    fclose(file);
+    //    return "Error: Failed to read from file";
+    //}
 
-    fclose(file);
+    //fclose(file);
 
-    // Remove newline character if present
-    buffer[strcspn(buffer, "\r\n")] = '\0';
+    //// Remove newline character if present
+    //buffer[strcspn(buffer, "\r\n")] = '\0';
 
-    // Return the content of the buffer as the string
-    logMessage("Successfully read from .ini file: %s", buffer);
-    return buffer;
+    //// Return the content of the buffer as the string
+    //logMessage("Successfully read from .ini file: %s", buffer);
+    return iniFilePath;
 }
 
 // Logging function to log messages to the log file

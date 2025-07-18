@@ -18,7 +18,7 @@ void initializeLogFilePath();
 void logMessage(const char *format, ...);
 
 // Function to read an INI file and calculate the sum of integers
-char* readIniFileFromDll();
+char *GetIniPath();
 int* parseGamepadIDs(int* numIDs);
 
 void stringToLower(char* str);
