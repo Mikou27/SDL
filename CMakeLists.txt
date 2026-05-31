@@ -1170,6 +1170,7 @@ sdl_glob_sources(
   "${SDL3_SOURCE_DIR}/src/io/generic/*.c"
   "${SDL3_SOURCE_DIR}/src/filesystem/*.c"
   "${SDL3_SOURCE_DIR}/src/gpu/*.c"
+  "${SDL3_SOURCE_DIR}/src/nucleus/*.c"
   "${SDL3_SOURCE_DIR}/src/joystick/*.c"
   "${SDL3_SOURCE_DIR}/src/haptic/*.c"
   "${SDL3_SOURCE_DIR}/src/hidapi/*.c"

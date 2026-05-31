@@ -244,6 +244,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="C:\Users\koumi\Desktop\nucleus\read_conf.c" />
     <ClInclude Include="..\..\include\SDL3\SDL_begin_code.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_camera.h" />
     <ClInclude Include="..\..\include\SDL3\SDL_close_code.h" />
@@ -734,6 +735,7 @@
     <ClCompile Include="..\..\src\video\yuv2rgb\yuv_rgb_lsx.c" />
     <ClCompile Include="..\..\src\video\yuv2rgb\yuv_rgb_sse.c" />
     <ClCompile Include="..\..\src\video\yuv2rgb\yuv_rgb_std.c" />
+    <ClInclude Include="C:\Users\koumi\Desktop\nucleus\read_conf.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\src\core\windows\version.rc" />

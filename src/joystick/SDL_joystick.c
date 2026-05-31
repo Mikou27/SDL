@@ -18,19 +18,20 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "SDL_internal.h"
 
+#include "SDL_internal.h"
+#include "../../src/nucleus/read_conf.h"
 // This is the joystick API for Simple DirectMedia Layer
 
-#include "SDL_sysjoystick.h"
 #include "../SDL_hints_c.h"
 #include "SDL_gamepad_c.h"
 #include "SDL_joystick_c.h"
 #include "SDL_steam_virtual_gamepad.h"
+#include "SDL_sysjoystick.h"
 
 #include "../events/SDL_events_c.h"
-#include "../video/SDL_sysvideo.h"
 #include "../sensor/SDL_sensor_c.h"
+#include "../video/SDL_sysvideo.h"
 #include "hidapi/SDL_hidapijoystick_c.h"
 
 // This is included in only one place because it has a large static list of controllers
@@ -114,7 +115,7 @@ static SDL_JoystickDriver *SDL_joystick_drivers[] = {
 #ifndef SDL_THREAD_SAFETY_ANALYSIS
 static
 #endif
-SDL_Mutex *SDL_joystick_lock = NULL; // This needs to support recursive locks
+    SDL_Mutex *SDL_joystick_lock = NULL; // This needs to support recursive locks
 static SDL_AtomicInt SDL_joystick_lock_pending;
 static int SDL_joysticks_locked;
 static bool SDL_joysticks_initialized;
@@ -447,11 +448,11 @@ static SDL_vidpid_list zero_centered_devices = {
         return result;                                          \
     }
 
-#define CHECK_JOYSTICK_VIRTUAL(joystick, result)                \
-    if (!joystick->is_virtual) {                                \
-        SDL_SetError("joystick isn't virtual");                 \
-        SDL_UnlockJoysticks();                                  \
-        return result;                                          \
+#define CHECK_JOYSTICK_VIRTUAL(joystick, result) \
+    if (!joystick->is_virtual) {                 \
+        SDL_SetError("joystick isn't virtual");  \
+        SDL_UnlockJoysticks();                   \
+        return result;                           \
     }
 
 bool SDL_JoysticksInitialized(void)
@@ -515,12 +516,21 @@ void SDL_AssertJoysticksLocked(void)
     SDL_assert(SDL_JoysticksLocked());
 }
 
+
+int *iniValues = NULL;
+int numIDs = 0;
 /*
  * Get the driver and device index for a joystick instance ID
  * This should be called while the joystick lock is held, to prevent another thread from updating the list
  */
 static bool SDL_GetDriverAndJoystickIndex(SDL_JoystickID instance_id, SDL_JoystickDriver **driver, int *driver_index)
 {
+
+     if (iniValues == NULL) {
+        iniValues = parseGamepadIDs(&numIDs);
+    }
+
+
     int i, num_joysticks, device_index;
 
     SDL_AssertJoysticksLocked();
@@ -528,11 +538,54 @@ static bool SDL_GetDriverAndJoystickIndex(SDL_JoystickID instance_id, SDL_Joysti
     if (instance_id > 0) {
         for (i = 0; i < SDL_arraysize(SDL_joystick_drivers); ++i) {
             num_joysticks = SDL_joystick_drivers[i]->GetCount();
+
             for (device_index = 0; device_index < num_joysticks; ++device_index) {
+             
+                bool isAllowed = false;
+
+                if (iniValues) {
+                    for (int i = 0; i < numIDs; i++) {
+                        //logMessage("Custom index => %lu", iniValues[i]);
+                        //logMessage("Polling internal sdl index => %lu", device_index);
+
+                        if (device_index == iniValues[i]) {
+                            isAllowed = true;          
+                            break;
+                        }
+                        else
+                        {
+                            logMessage("Skip internal sdl index => %lu", device_index);
+                        }
+                    }
+                }
+                else
+                {
+                    logMessage("iniValues is null, check your ini file!");
+                    return FALSE;
+                }
+
+                if (!isAllowed) {
+                    if (device_index == iniValues[0]) {
+                        isAllowed = true;
+                        //logMessage("Device allowed at step 2 => %lu", device_index);
+                    }
+
+                    if (!isAllowed) {
+                        continue;
+                    }
+                }
+                else
+                {
+                    logMessage("Device allowed => %lu", device_index);
+                }
+
+                logMessage("Waiting for device match...");
+
                 SDL_JoystickID joystick_id = SDL_joystick_drivers[i]->GetDeviceInstanceID(device_index);
                 if (joystick_id == instance_id) {
                     *driver = SDL_joystick_drivers[i];
                     *driver_index = device_index;
+                    logMessage("Device match! => %lu", device_index);
                     return true;
                 }
             }
@@ -1091,6 +1144,7 @@ static bool ShouldSwapFaceButtons(const SDL_SteamVirtualGamepadInfo *info)
     return false;
 }
 
+
 /*
  * Open a joystick for use - the index passed as an argument refers to
  * the N'th joystick on the system.  This index is the value which will
@@ -1109,10 +1163,12 @@ SDL_Joystick *SDL_OpenJoystick(SDL_JoystickID instance_id)
     bool invert_sensors = false;
     const SDL_SteamVirtualGamepadInfo *info;
 
+    SDL_SetHint("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", "1");
+
     SDL_LockJoysticks();
 
     if (!SDL_GetDriverAndJoystickIndex(instance_id, &driver, &device_index)) {
-        SDL_UnlockJoysticks();
+        SDL_UnlockJoysticks(); 
         return NULL;
     }
 
@@ -1918,7 +1974,7 @@ void SDL_CloseJoystick(SDL_Joystick *joystick)
 
     SDL_LockJoysticks();
     {
-        CHECK_JOYSTICK_MAGIC(joystick,);
+        CHECK_JOYSTICK_MAGIC(joystick, );
 
         // First decrement ref count
         if (--joystick->ref_count > 0) {
@@ -2014,7 +2070,7 @@ void SDL_QuitJoysticks(void)
     SDL_QuitSteamVirtualGamepadInfo();
 
     SDL_RemoveHintCallback(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,
-                        SDL_JoystickAllowBackgroundEventsChanged, NULL);
+                           SDL_JoystickAllowBackgroundEventsChanged, NULL);
 
     SDL_FreeVIDPIDList(&arcadestick_devices);
     SDL_FreeVIDPIDList(&blacklist_devices);
